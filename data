@@ -1,0 +1,85 @@
+-- DB: shop_management
+CREATE DATABASE IF NOT EXISTS shop_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE shop_management;
+
+-- Users (đăng nhập)
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) UNIQUE,
+  email VARCHAR(255) UNIQUE,
+  password_hash VARCHAR(255) NULL,
+  provider VARCHAR(50) DEFAULT 'local', -- local, google, facebook
+  provider_id VARCHAR(255) NULL,
+  role ENUM('admin','staff') DEFAULT 'staff',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Customers
+CREATE TABLE IF NOT EXISTS customers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(255) NOT NULL,
+  birth_year INT NULL,
+  phone VARCHAR(50) NULL,
+  email VARCHAR(255) NULL,
+  address TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Products
+CREATE TABLE IF NOT EXISTS products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sku VARCHAR(50) UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  description TEXT NULL,
+  price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  stock_qty INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Orders
+CREATE TABLE IF NOT EXISTS orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT,
+  order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  total DECIMAL(12,2) DEFAULT 0,
+  status ENUM('pending','paid','cancelled','completed') DEFAULT 'pending',
+  note TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+);
+
+-- Order items (chi tiết đơn)
+CREATE TABLE IF NOT EXISTS order_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL,
+  unit_price DECIMAL(12,2) NOT NULL,
+  subtotal DECIMAL(12,2) NOT NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+);
+
+-- Stock entries (nhập kho)
+CREATE TABLE IF NOT EXISTS stock_entries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL,
+  unit_price DECIMAL(12,2) NULL,
+  entry_type ENUM('import','adjustment') DEFAULT 'import',
+  note TEXT NULL,
+  entry_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+);
+
+-- Payments (tùy chọn)
+CREATE TABLE IF NOT EXISTS payments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  method VARCHAR(50) DEFAULT 'cash',
+  paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
